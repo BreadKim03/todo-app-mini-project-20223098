@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
-// API 주소 자동 설정 로직
 const API_URL = 'https://' + window.location.hostname.replace('frontend', 'api') + '/api'; 
 
 function App() {
@@ -11,10 +10,11 @@ function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [view, setView] = useState('calendar');
+  const [currentDate, setCurrentDate] = useState(new Date(2026, 2, 1));
+  const [modal, setModal] = useState({ open: false, date: null, todo: null, text: '' });
 
-  useEffect(() => {
-    if (token) fetchTodos();
-  }, [token]);
+  useEffect(() => { if (token) fetchTodos(); }, [token]);
 
   const fetchTodos = async () => {
     try {
@@ -23,96 +23,133 @@ function App() {
     } catch (err) { console.error(err); }
   };
 
-  const handleSignup = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post(`${API_URL}/register`, { username, password });
-      alert('회원가입 성공!');
-    } catch (err) { alert('이미 존재하는 아이디입니다.'); }
+  // 날짜 계산
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const lastDate = new Date(year, month + 1, 0).getDate();
+  const dateArray = Array.from({ length: lastDate }, (_, i) => i + 1);
+  const emptyDays = Array.from({ length: firstDay }, (_, i) => null);
+
+  // 기능 함수들
+  const handleSave = async () => {
+    if (!modal.text) return;
+    const data = { title: modal.text, year, month: month + 1, date: modal.date };
+    if (modal.todo) await axios.put(`${API_URL}/todos/${modal.todo._id}`, { title: modal.text });
+    else await axios.post(`${API_URL}/todos`, data);
+    setModal({ open: false, date: null, todo: null, text: '' });
+    fetchTodos();
   };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await axios.post(`${API_URL}/login`, { username, password });
-      localStorage.setItem('token', res.data.token);
-      setToken(res.data.token);
+  const toggleCheck = async (todo) => {
+    await axios.put(`${API_URL}/todos/${todo._id}`, { completed: !todo.completed });
+    fetchTodos();
+  };
+
+  const handleDelete = async (id) => {
+    if (confirm('삭제할까요?')) {
+      await axios.delete(`${API_URL}/todos/${id}`);
+      setModal({ open: false, date: null, todo: null, text: '' });
       fetchTodos();
-    } catch (err) { alert('아이디 또는 비밀번호가 틀립니다.'); }
+    }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
-  };
-
-  // --- 로그인/회원가입 양식 (수정됨) ---
-  const renderAuthForm = () => (
-    <form onSubmit={handleLogin} className="auth-form sketch-border">
-      {/* 타이틀 변경 */}
-      <h1>To-Do List</h1>
-      {/* 소제목 추가 */}
-      <h2 className="auth-subtitle">오늘의 할 일은?</h2>
-      
-      <div className="input-group">
-        <label htmlFor="username">ID</label>
-        <input id="username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="sketch-input" required />
-      </div>
-      
-      <div className="input-group">
-        <label htmlFor="password">비밀번호</label>
-        <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="sketch-input" required />
-      </div>
-      
-      <div className="auth-buttons">
-        <button type="submit" className="sketch-button">로그인</button>
-        <button type="button" onClick={handleSignup} className="sketch-button">회원가입</button>
-      </div>
-    </form>
-  );
-
-  // --- 캘린더 리스트 세션 ---
-  const renderTodoList = () => (
-    <div className="calendar-wrapper">
-      <h1 className="main-title" style={{textAlign:'center'}}>To-Do List</h1>
-      
-      <div className="calendar-container sketch-border">
-        {/* 달력 헤더 (년/월) */}
-        <div className="calendar-header" style={{display:'flex', justifyContent:'center', gap:'15px', marginBottom:'15px'}}>
-          <button className="nav-btn" style={{background:'none', border:'none', fontSize:'20px'}}>{'<'}</button>
-          <h2>2026년 3월</h2>
-          <button className="nav-btn" style={{background:'none', border:'none', fontSize:'20px'}}>{'>'}</button>
+  if (!token) return (
+    <div className="app-container">
+      <form onSubmit={async (e) => {
+        e.preventDefault();
+        try {
+          const res = await axios.post(`${API_URL}/login`, { username, password });
+          localStorage.setItem('token', res.data.token);
+          setToken(res.data.token);
+        } catch { alert('로그인 실패'); }
+      }} className="auth-form sketch-border">
+        <h1>To-Do List</h1>
+        <h2 className="auth-subtitle">오늘의 할 일은?</h2>
+        <div className="input-group">
+          <label>ID</label>
+          <input type="text" className="sketch-input" value={username} onChange={e=>setUsername(e.target.value)} required />
         </div>
-
-        {/* 요일 */}
-        <div className="calendar-weekdays">
-          {['일','월','화','수','목','금','토'].map((day, i) => (
-            <div key={day} className={`weekday ${i===0 ? 'weekday-sun' : i===6 ? 'weekday-sat' : ''}`}>{day}</div>
-          ))}
+        <div className="input-group">
+          <label>Password</label>
+          <input type="password" className="sketch-input" value={password} onChange={e=>setPassword(e.target.value)} required />
         </div>
-
-        {/* 날짜 그리드 (31일까지 예시) */}
-        <div className="calendar-grid">
-          {[...Array(31)].map((_, i) => (
-            <div key={i} className={`calendar-day ${(i+1)%7===1 ? 'sun-day' : (i+1)%7===0 ? 'sat-day' : ''}`}>
-              <span>{i + 1}</span>
-              {/* 할 일 예시 */}
-              <div style={{fontSize:'12px'}}>📝 일정 추가</div>
-            </div>
-          ))}
+        <div className="auth-buttons">
+          <button type="submit" className="sketch-button">로그인</button>
+          <button type="button" onClick={async () => {
+            await axios.post(`${API_URL}/register`, { username, password });
+            alert('가입 성공!');
+          }} className="sketch-button">회원가입</button>
         </div>
-
-        {/* 하단 버튼 */}
-        <div className="calendar-footer">
-          <button onClick={handleLogout} className="sketch-button">로그아웃</button>
-        </div>
-      </div>
+      </form>
     </div>
   );
 
   return (
     <div className="app-container">
-      {token ? renderTodoList() : renderAuthForm()}
+      <div className="calendar-wrapper">
+        <h1 className="main-title">To-Do List</h1>
+        {view === 'calendar' ? (
+          <div className="calendar-container sketch-border">
+            <div className="calendar-header" style={{display:'flex', justifyContent:'center', gap:'20px', marginBottom:'20px'}}>
+              <button className="nav-btn" onClick={()=>setCurrentDate(new Date(year, month-1, 1))}>{'<'}</button>
+              <h2>{year}년 {month + 1}월</h2>
+              <button className="nav-btn" onClick={()=>setCurrentDate(new Date(year, month+1, 1))}>{'>'}</button>
+            </div>
+            <div className="calendar-grid">
+              {['일','월','화','수','목','금','토'].map((d,i)=>(
+                <div key={d} className={`weekday ${i===0?'sun-day':i===6?'sat-day':''}`} style={{textAlign:'center', fontWeight:'bold'}}>{d}</div>
+              ))}
+              {emptyDays.concat(dateArray).map((d, i) => (
+                <div key={i} className={`calendar-day ${i%7===0?'sun-day':i%7===6?'sat-day':''}`}>
+                  <span>{d}</span>
+                  {d && <button className="add-todo-btn" style={{position:'absolute', bottom:'5px', right:'5px', background:'none', border:'1px solid #ddd'}} onClick={()=>setModal({open:true, date:d, todo:null, text:''})}>+</button>}
+                  {todos.filter(t => t.year===year && t.month===month+1 && t.date===d).map(todo => (
+                    <div key={todo._id} className="todo-item" onClick={()=>setModal({open:true, date:d, todo:todo, text:todo.title})}>
+                      <div className={`sketch-check ${todo.completed?'checked':''}`} onClick={(e)=>{e.stopPropagation(); toggleCheck(todo);}}></div>
+                      <span className={todo.completed?'completed':''}>{todo.title}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="sketch-border" style={{width:'100%', padding:'20px'}}>
+            <h2>모든 일정 (날짜 순)</h2>
+            {[...todos].sort((a,b)=>new Date(a.year, a.month-1, a.date)-new Date(b.year, b.month-1, b.date)).map(todo=>(
+              <div key={todo._id} className="todo-item" style={{justifyContent:'space-between', padding:'10px', borderBottom:'1px solid #eee'}}>
+                <div style={{display:'flex', gap:'10px'}}>
+                  <div className={`sketch-check ${todo.completed?'checked':''}`} onClick={()=>toggleCheck(todo)}></div>
+                  <span>[{todo.year}-{todo.month}-{todo.date}] {todo.title}</span>
+                </div>
+                <div>
+                  <button onClick={()=>setModal({open:true, date:todo.date, todo:todo, text:todo.title})}>수정</button>
+                  <button onClick={()=>handleDelete(todo._id)}>삭제</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="footer-btns">
+          <button className="sketch-button" onClick={()=>setView(view==='calendar'?'all':'calendar')}>{view==='calendar'?'전체 목록 보기 ▷':'캘린더 보기'}</button>
+          <button className="sketch-button" onClick={handleLogout}>로그아웃</button>
+        </div>
+      </div>
+
+      {modal.open && (
+        <div className="modal-overlay">
+          <div className="sketch-border" style={{width:'300px', padding:'20px', display:'flex', flexDirection:'column', gap:'15px'}}>
+            <h3>{modal.date}일 일정 {modal.todo?'수정':'추가'}</h3>
+            <input type="text" className="sketch-input" value={modal.text} onChange={e=>setModal({...modal, text:e.target.value})} autoFocus />
+            <div style={{display:'flex', gap:'10px'}}>
+              <button className="sketch-button" onClick={handleSave}>저장</button>
+              {modal.todo && <button className="sketch-button" style={{color:'red'}} onClick={()=>handleDelete(modal.todo._id)}>삭제</button>}
+              <button className="sketch-button" onClick={()=>setModal({open:false, date:null, todo:null, text:''})}>취소</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
