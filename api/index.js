@@ -23,14 +23,14 @@ const todoSchema = new mongoose.Schema({
   date: Number,
   timestamp: Number
 });
-const Todo = mongoose.model('Todo', todoSchema);
+const Todo = mongoose.models.Todo || mongoose.model('Todo', todoSchema);
 
 // User 스키마 (회원가입용)
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true }
 });
-const User = mongoose.model('User', userSchema);
+const User = mongoose.models.User || mongoose.model('User', userSchema);
 
 
 // --- 2. 인증 관련 API (회원가입/로그인) ---
@@ -51,28 +51,20 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
-    
-    // 1. DB에서 사용자 찾기
+    // DB에서 사용자 찾기
     const user = await User.findOne({ username, password });
     
     if (user) {
-      // 로그인 성공 시 응답 (가이드에 따라 토큰 전달)
-      res.json({ 
-        token: 'success-token-123', 
-        message: '로그인 성공',
-        username: user.username 
-      });
+      res.json({ token: 'success-token-123', message: '로그인 성공' });
     } else {
-      // 아이디나 비밀번호가 틀린 경우
       res.status(401).json({ message: '아이디 또는 비밀번호가 틀립니다.' });
     }
   } catch (error) {
-    // 서버 로직 실행 중 에러 발생 (500 에러의 실제 원인을 로그에 남깁니다)
-    console.error('로그인 중 서버 에러 발생:', error);
+    // 서버 에러 발생 시 로그를 남기고 응답합니다.
+    console.error("Login Error:", error);
     res.status(500).json({ message: '서버 내부 오류가 발생했습니다.', error: error.message });
   }
 });
-
 // --- 3. Todo 관련 API ---
 
 app.get('/api/todos', async (req, res) => {
