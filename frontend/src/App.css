@@ -1,7 +1,6 @@
 /* frontend/src/App.css */
 @import url('https://fonts.googleapis.com/css2?family=Single+Day&display=swap');
 
-/* --- 전역 설정 및 중앙 정렬 --- */
 .app-container {
   display: flex;
   justify-content: center;
@@ -11,116 +10,41 @@
   padding: 20px;
 }
 
-/* --- 정사각형 로그인 창 --- */
-.auth-form {
-  width: 90vw;
-  max-width: 500px;
-  aspect-ratio: 1 / 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 40px;
-  gap: 15px;
-}
-
-.auth-form h1 { font-size: 36px; margin: 0; }
-.auth-subtitle { font-size: 20px; margin: 0 0 20px 0; color: #555; }
-
-.input-group {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  text-align: left;
-}
-
-.sketch-input {
-  border: 2px solid #333;
-  border-radius: 4px;
-  padding: 12px;
-  font-size: 18px;
-  box-shadow: 2px 2px 0 #333;
-  background: transparent;
-}
-
-.auth-buttons {
-  width: 100%;
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
-}
-
-.sketch-button {
-  flex: 1;
-  cursor: pointer;
-  border: 2px solid #333;
-  border-radius: 4px;
-  padding: 12px;
-  background: #fff;
-  box-shadow: 3px 3px 0 #333;
-  font-size: 18px;
-  transition: all 0.1s ease;
-}
-
-.sketch-button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 #333; }
-
-/* --- 캘린더 및 할 일 항목 --- */
+/* --- 가로형 대형 캘린더 --- */
 .calendar-wrapper {
   width: 95vw;
-  max-width: 1200px;
+  max-width: 1300px; /* 더 넓게 설정 */
   display: flex;
   flex-direction: column;
-  align-items: center;
 }
 
-.calendar-container { width: 100%; padding: 20px; }
-
-/* 💡 요일과 날짜 박스 사이의 거리를 좁히는 핵심 부분 */
-.calendar-weekdays {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  text-align: center;
-  font-weight: bold;
-  margin-bottom: 2px; /* 👈 기존 10px에서 2px로 축소하여 거리를 좁힘 */
-}
+.calendar-container { width: 100%; padding: 30px; }
 
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  grid-auto-rows: minmax(120px, auto); /* 가로가 긴 비율 유지 */
-  gap: 8px; /* 날짜 박스끼리의 간격 */
+  grid-auto-rows: minmax(130px, auto); /* 셀 높이 확장 */
+  gap: 12px;
 }
 
 .calendar-day {
-  border: 1.5px solid #333;
-  border-radius: 4px;
-  padding: 8px;
+  border: 2px solid #333;
+  border-radius: 5px;
+  padding: 10px;
   position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+  min-height: 130px;
 }
 
-/* 체크박스 및 할 일 텍스트 */
-.todo-item { display: flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
-.sketch-check {
-  width: 14px; height: 14px; border: 1.5px solid #333;
-  display: inline-block; position: relative;
-}
-.sketch-check.checked::after {
-  content: '✓'; position: absolute; top: -7px; left: 1px; font-weight: bold;
-}
-.completed { text-decoration: line-through; color: #888; }
+.todo-item { display: flex; align-items: center; gap: 8px; font-size: 16px; margin-bottom: 4px; cursor: pointer; }
+.sketch-check { width: 18px; height: 18px; border: 2px solid #333; position: relative; }
+.sketch-check.checked::after { content: '✓'; position: absolute; top: -8px; left: 1px; font-size: 18px; font-weight: bold; }
+.completed { text-decoration: line-through; color: #aaa; }
 
-/* 요일 색상 */
-.weekday-sun, .sun-day { color: #ff4444; } /* 일요일 빨강 */
-.weekday-sat, .sat-day { color: #4444ff; } /* 토요일 파랑 */
+.sun-day { color: #ff4444; }
+.sat-day { color: #4444ff; }
 
-/* 모달 및 전체 목록 버튼 */
+/* 모달 스타일 */
 .modal-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0,0,0,0.3); display: flex; justify-content: center; align-items: center; z-index: 100;
+  background: rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: center; z-index: 1000;
 }
-
-.footer-btns { width: 100%; display: flex; justify-content: space-between; margin-top: 20px; }
