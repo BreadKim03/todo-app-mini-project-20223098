@@ -49,13 +49,27 @@ app.post('/api/register', async (req, res) => {
 
 // 로그인
 app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body;
-  const user = await User.findOne({ username, password });
-  if (user) {
-    // 실제 프로젝트에서는 JWT를 써야 하지만, 우선 테스트를 위해 가짜 토큰을 보냅니다.
-    res.json({ token: 'success-token-123', message: '로그인 성공' });
-  } else {
-    res.status(401).json({ message: '아이디 또는 비밀번호가 틀립니다.' });
+  try {
+    const { username, password } = req.body;
+    
+    // 1. 데이터베이스에서 사용자 찾기
+    const user = await User.findOne({ username, password });
+    
+    if (user) {
+      // 로그인 성공 시 응답
+      res.json({ 
+        token: 'success-token-123', 
+        message: '로그인 성공',
+        username: user.username 
+      });
+    } else {
+      // 사용자가 없거나 비번이 틀린 경우
+      res.status(401).json({ message: '아이디 또는 비밀번호가 틀립니다.' });
+    }
+  } catch (error) {
+    // 서버에서 에러가 발생한 경우 (여기가 500 에러의 원인!)
+    console.error('로그인 서버 에러:', error);
+    res.status(500).json({ message: '서버 내부 오류가 발생했습니다.', error: error.message });
   }
 });
 
